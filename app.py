@@ -6,11 +6,12 @@ from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from langchain.vectorstores import Chroma
 from langchain.llms import GPT4All, LlamaCpp
 from flask import Flask, jsonify, request
+from flask_cors import CORS
 import os
 from constants import CHROMA_SETTINGS
 
 app = Flask(__name__)
-
+CORS(app)
 # @app.before_first_request
 # def setup():
     #run ingest.py and privateGPT.py
@@ -26,7 +27,7 @@ model_n_batch = int(os.environ.get('MODEL_N_BATCH',8))
 target_source_chunks = int(os.environ.get('TARGET_SOURCE_CHUNKS',2))
 embeddings = HuggingFaceEmbeddings(model_name=embeddings_model_name)
 db = Chroma(persist_directory=persist_directory, embedding_function=embeddings, client_settings=CHROMA_SETTINGS)
-retriever = db.as_retriever(search_kwargs={"k": target_source_chunks})
+retriever = db.as_retriever(search_kwargs={"k": 1})
 # activate/deactivate the streaming StdOut callback for LLMs
 callbacks = []
 # Prepare the LLM
@@ -51,8 +52,7 @@ def query():
     for document in docs:
         print("\n> " + document.metadata["source"] + ":")
         print(document.page_content)
-        answer += "\n\n> " + document.metadata["source"] + ":"
-        answer += "\n" + document.page_content
+        answer += document.page_content
     return jsonify({"answer":answer})
 if __name__ == '__main__':
     app.run(debug=True)
